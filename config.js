@@ -27,9 +27,8 @@ const AR_CONFIG = {
   // Right column — Highlighted Projects (each card is tappable, opens YouTube)
   // youtubeId = the part after "watch?v=" in the video URL
   projects: [
-    { title: "Project One",   youtubeId: "dQw4w9WgXcQ" },
-    { title: "Project Two",   youtubeId: "dQw4w9WgXcQ" },
-    { title: "Project Three", youtubeId: "dQw4w9WgXcQ" },
+    { title: "Sizzle - mysight", youtubeId: "1Tngz3l_SmQ" },
+    { title: "Guessify",         youtubeId: "NaGQZsKkdBM" },
   ],
 
   // The URL where this site is deployed — the printable QR code points here.
