@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Printable Resume — AR Target</title>
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+  <script src="../config.js"></script>
+  <style>
+    :root { --ink: #1f2937; --gray: #6b7280; --line: #d1d5db; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e5e7eb;
+      font-family: "Segoe UI", -apple-system, Roboto, sans-serif;
+      color: var(--ink);
+    }
+    .hint {
+      max-width: 8.5in;
+      margin: 16px auto 0;
+      padding: 10px 16px;
+      background: #fff;
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--gray);
+    }
+    .page {
+      width: 8.5in;
+      min-height: 11in;
+      margin: 16px auto 32px;
+      background: #fff;
+      padding: 0.7in 0.75in;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 14px;
+    }
+    h1 { margin: 0; font-size: 30px; letter-spacing: 0.5px; }
+    .subtitle { color: var(--gray); font-size: 15px; margin-top: 4px; }
+    .qr-wrap { text-align: center; }
+    #qrcode { padding: 6px; background: #fff; }
+    #qrcode img, #qrcode canvas { display: block; }
+    .qr-caption { font-size: 10px; color: var(--gray); margin-top: 4px; }
+    h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--gray);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 5px;
+      margin: 26px 0 10px;
+    }
+    p, li { font-size: 13.5px; line-height: 1.5; }
+    .job { margin-bottom: 14px; }
+    .job .row { display: flex; justify-content: space-between; }
+    .job .role { font-weight: 600; }
+    .job .when { color: var(--gray); font-size: 12.5px; }
+    .contacts { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+    .contacts span { font-size: 12.5px; color: var(--gray); }
+    @media print {
+      body { background: #fff; }
+      .hint { display: none; }
+      .page { margin: 0; box-shadow: none; }
+      @page { size: letter; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hint">
+    <strong>Print me:</strong> Ctrl+P → Letter, no margins. This printed page is
+    your AR tracking target — after printing, take a straight-on photo of it (or
+    screenshot this page) and compile it into <code>assets/targets.mind</code>
+    (see README step 3). The QR code points to your deployed AR site.
+  </div>
+
+  <div class="page">
+    <header>
+      <div>
+        <h1 id="p-name"></h1>
+        <div class="subtitle" id="p-title"></div>
+        <div class="contacts" id="p-contacts"></div>
+      </div>
+      <div class="qr-wrap">
+        <div id="qrcode"></div>
+        <div class="qr-caption">Scan for AR resume</div>
+      </div>
+    </header>
+
+    <h2>Summary</h2>
+    <p id="p-about"></p>
+
+    <h2>Experience</h2>
+    <div class="job">
+      <div class="row"><span class="role">Job Title — Company</span><span class="when">2024 – Present</span></div>
+      <ul>
+        <li>Replace these bullets with your real experience.</li>
+        <li>Keep the layout busy-ish: more visual detail = better AR tracking.</li>
+      </ul>
+    </div>
+    <div class="job">
+      <div class="row"><span class="role">Job Title — Company</span><span class="when">2022 – 2024</span></div>
+      <ul>
+        <li>Accomplishment with a measurable result.</li>
+        <li>Another accomplishment.</li>
+      </ul>
+    </div>
+
+    <h2>Projects</h2>
+    <div class="job">
+      <div class="row"><span class="role">Project One</span></div>
+      <ul><li>Short description — full video demo in the AR view.</li></ul>
+    </div>
+    <div class="job">
+      <div class="row"><span class="role">Project Two</span></div>
+      <ul><li>Short description.</li></ul>
+    </div>
+
+    <h2>Skills</h2>
+    <p>JavaScript · Python · React · Three.js · AR/VR · Git</p>
+
+    <h2>Education</h2>
+    <div class="job">
+      <div class="row"><span class="role">Degree — School</span><span class="when">Year</span></div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("p-name").textContent = AR_CONFIG.name;
+    document.getElementById("p-title").textContent = AR_CONFIG.title;
+    document.getElementById("p-about").textContent = AR_CONFIG.about;
+    document.getElementById("p-contacts").innerHTML = AR_CONFIG.contacts
+      .map((c) => `<span>${c.label}: ${c.url.replace(/^https?:\/\//, "")}</span>`)
+      .join("");
+    new QRCode(document.getElementById("qrcode"), {
+      text: AR_CONFIG.siteUrl,
+      width: 110,
+      height: 110,
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+  </script>
+</body>
+</html>
