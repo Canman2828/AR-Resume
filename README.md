@@ -1,93 +1,124 @@
 # AR Resume
 
-Scan a QR code on a printed resume → the phone opens this site → point the
-camera at the resume → liquid-glass AR panels float around the paper:
+Scan the QR code on the printed resume → the phone opens the live site →
+point the camera at the resume → liquid-glass AR panels float around the
+paper:
 
 ```
                      ┌──────────────────────┐
- (photo)             │  Resume        [QR]  │   Highlighted Projects
+ (photo)             │ ▓▓ Name       [QR] ▓ │   Highlighted Projects
  ┌────────┐          │  ~~~~~~~~~~~~~~~~    │   ┌────────────────┐
  │ About  │          │  ~~~~~~~~~~~~~~~~    │   │ YouTube video  │
  └────────┘          │  ~~~~~~~~~~~~~~~~    │   ├────────────────┤
  ┌────────┐          │  ~~~~~~~~~~~~~~~~    │   │ YouTube video  │
- │Contacts│          │  (physical paper)    │   ├────────────────┤
- │LinkedIn│          │                      │   │ YouTube video  │
- │GitHub  │          │                      │   └────────────────┘
+ │Contacts│          │  (physical paper)    │   └────────────────┘
+ │LinkedIn│          │                      │
+ │GitHub  │          │ ▓▓▓▓▓▓ footer ▓▓▓▓▓▓ │
  │Website │          └──────────────────────┘
  └────────┘
 ```
 
-Built with [MindAR](https://hiukim.github.io/mind-ar-js-doc/) image tracking +
-A-Frame, inspired by [AR_Business_Card](https://github.com/Quinxie51/AR_Business_Card).
-Pure static site — no build step, no server code.
+Built with [MindAR](https://hiukim.github.io/mind-ar-js-doc/) image tracking
++ A-Frame. Pure static site — no build step, no server code.
 
-## Try it right now (demo target)
+**Live site:** https://canman2828.github.io/AR-Resume/
+**Printable resume:** https://canman2828.github.io/AR-Resume/print/resume-print.html
 
-The repo ships with MindAR's sample target so it works before you customize
-anything:
+---
 
-1. Serve the folder locally (camera access needs localhost or HTTPS):
-   ```
-   npx serve .        # or: python -m http.server 8080
-   ```
-2. Open `http://localhost:3000` on the same machine, allow the camera.
-3. Point the camera at `assets/demo-target.png` opened on another screen (or
-   printed). The glass panels pop in around it.
+## The one rule to remember
 
-On a phone, easiest is to deploy first (step 5) and open the live URL.
+The AR engine recognizes the resume by a compiled "fingerprint"
+(`assets/targets.mind`) of the page's exact appearance.
 
-## Make it yours
+> **If you change how the printed resume looks (any edit to
+> `print/resume-print.html`, or config values shown on it like name or
+> contacts), you MUST recompile `targets.mind` (step 3 below) and reprint.
+> If you only change AR-side content (About text, videos, photo), no
+> recompile is needed — just push.**
 
-### 1. Edit `config.js`
+The design needs visual contrast to track: keep the dark header band,
+section chips, and footer bar (or something similarly bold). A sparse
+white page with thin text will NOT be detected — this was tested.
 
-Everything lives there: name, title, about text, photo, contact links,
-project titles + YouTube video IDs, and your deployed site URL.
+---
 
-### 2. Print your resume
+## Every-time workflow
 
-Open `print/resume-print.html` in a browser — it fills in your name/links from
-`config.js` and generates the QR code (pointing at `siteUrl`). Edit the
-experience/skills sections in that file directly, then print it (Letter size).
+### 1. Edit content
 
-### 3. Compile your tracking target
+- `config.js` — name, title, about, photo, contact links, project titles
+  + YouTube IDs (the part after `watch?v=`). This drives the AR panels
+  AND the printable page's header/QR/footer.
+- `print/resume-print.html` — experience bullets, skills, education
+  (edit the HTML directly).
 
-The AR engine needs a fingerprint (`.mind` file) of what the camera should
-recognize — your printed resume:
+### 2. Preview locally
 
-1. Screenshot or photograph the final resume page straight-on.
-2. Go to the [MindAR image compiler](https://hiukim.github.io/mind-ar-js-doc/tools/compile/).
-3. Upload the image, click **Start**, download `targets.mind`.
+```
+npx serve -l 8090 .
+```
+
+- Printable page: http://localhost:8090/print/resume-print
+- AR view: http://localhost:8090 — camera works on localhost; point your
+  webcam at the printed page (or run the phone test in step 5 instead).
+
+### 3. Recompile the tracking target (only if the page's look changed)
+
+1. Open the print page (step 2) and screenshot just the white page area
+   (or print it and photograph it flat, straight-on).
+2. Go to the MindAR compiler:
+   https://hiukim.github.io/mind-ar-js-doc/tools/compile/
+3. Upload the image → **Start** → wait → download `targets.mind`.
 4. Replace `assets/targets.mind` with it.
-5. In `config.js`, set `targetHeight: 1.294` (letter portrait) so the panels
-   line up with the paper.
+5. If the page's proportions changed, set `targetHeight` in `config.js`
+   to image height ÷ width (letter portrait ≈ 1.32 with current design).
 
-Tip: visually busy resumes (headshot, section rules, the QR code itself) track
-much better than sparse white pages.
+(Asking Claude Code to "rebuild the AR target and deploy" runs this whole
+step + step 4 automatically, including a headless detection test.)
 
-### 4. (Optional) add your photo
-
-Drop `profile.jpg` into `assets/` and set `photo: "assets/profile.jpg"` in
-`config.js`.
-
-### 5. Deploy to GitHub Pages
+### 4. Deploy
 
 ```
-git add -A && git commit -m "Customize AR resume" && git push
+git add -A
+git commit -m "Update resume"
+git push
 ```
 
-Then on GitHub: **Settings → Pages → Source: main branch, / (root)**.
-Your site goes live at `https://<username>.github.io/AR-Resume/` — make sure
-`siteUrl` in `config.js` matches, and reprint if the QR changed.
+GitHub Pages redeploys `main` automatically in ~30–60 s. Nothing else to
+click — Pages is already configured (repo must stay **public**).
 
-## How it works
+### 5. Test on your phone
 
-- `index.html` — A-Frame scene with MindAR image tracking; camera feed +
-  anchored 3D content, tap-to-open raycaster.
-- `js/app.js` — renders each panel (About, Contacts, project cards) to a
-  canvas with a liquid-glass style (translucent white gradient, hairline
-  border, top sheen), textures them onto planes around the tracked target,
-  and wires up taps: contact rows open your links, project cards open their
-  YouTube videos. Thumbnails are pulled from `i.ytimg.com` automatically.
-- `config.js` — the only file you need to edit for content.
-- `print/resume-print.html` — printable resume + QR generator; the printed
-  page doubles as the AR tracking target.
+1. Scan the QR (or open the live site URL) in the phone browser.
+2. **Pull down to refresh** — phones cache the old tracking file.
+3. Allow camera access.
+4. Point at the printed resume (or the print page on your monitor).
+   Fill most of the camera view with the page; panels pop in ~1 s.
+5. Tap a contact row or project card — it opens the link/video.
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| QR → 404 | Repo went private or Pages got disabled. Repo settings: make public, Pages = deploy from `main` / root. |
+| Camera never opens | Must be HTTPS (the live URL) or localhost — plain `http://` on a LAN IP won't get camera permission. |
+| Scanning forever, no panels | The page in view doesn't match `targets.mind`: refresh the print page on screen AND the AR page on phone; recompile if the design changed. Also: fill the frame, avoid glare, keep the page flat. |
+| Panels misaligned with the paper | `targetHeight` in `config.js` doesn't match the target image's aspect ratio. |
+| Project cards show gray boxes | YouTube thumbnail failed to load — check the `youtubeId` values. Tap still opens the video. |
+| Old content shows on phone | Hard-refresh the phone browser; GitHub Pages also caches ~10 min. |
+
+## File map
+
+- `index.html` — AR scene (MindAR + A-Frame, tap raycaster, glass UI bars).
+- `js/app.js` — draws every panel to canvas in the liquid-glass style,
+  positions them around the tracked page, wires taps to links. Reads
+  everything from `config.js`.
+- `config.js` — **the only file to edit for content.**
+- `print/resume-print.html` — printable resume; auto-fills name/contacts/
+  QR/footer from `config.js`. Doubles as the AR tracking target.
+- `assets/targets.mind` — compiled fingerprint of the current print page.
+- `assets/demo-target.png` — MindAR's sample card (no longer tracked;
+  kept for reference).
