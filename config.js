@@ -37,5 +37,5 @@ const AR_CONFIG = {
   // Aspect ratio (height / width) of your tracking target image.
   // The bundled demo card is landscape: 0.6
   // A letter-size printed resume is portrait: 1.294  (11 / 8.5)
-  targetHeight: 1.32,
+  targetHeight: 1.294,
 };
