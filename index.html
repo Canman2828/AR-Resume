@@ -11,6 +11,7 @@
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <script src="./js/startup.js?v=camera-v2"></script>
+  <script src="./js/stabilize.js?v=stabilize-v1"></script>
   <script src="./config.js"></script>
   <style>
     html, body {
@@ -84,7 +85,7 @@
               cursor="fuse: false; rayOrigin: mouse"
               raycaster="objects: .clickable; far: 10000"></a-camera>
 
-    <a-entity id="anchor" mindar-image-target="targetIndex: 0"></a-entity>
+    <a-entity id="anchor" mindar-image-target="targetIndex: 0" pose-stabilizer></a-entity>
   </a-scene>
 
   <!-- Live smoothing tuner: ?cf=0.001&beta=0.01 overrides the values above so you
