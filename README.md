@@ -26,6 +26,13 @@ and are built before optional images load. Photos and thumbnails download
 independently after scene startup; failed requests or requests taking more
 than eight seconds leave a usable placeholder. MindAR still needs to warm
 up tracking after camera access and recognize the resume before showing panels.
+The camera prefers 640 × 480 frames to reduce tracking work; browsers may
+select another supported resolution. Add `?debug=startup` to the AR URL to
+see camera resolution, tracking setup, GPU warm-up, and target download
+timings. These diagnostics stay on the device. `Ready after camera opened`
+starts when the browser returns the camera stream, so it excludes time
+spent deciding whether to allow access. The camera adapter targets the
+pinned MindAR 1.2.5 startup methods and must be rechecked before upgrades.
 
 **Live site:** https://canman2828.github.io/AR-Resume/
 **Printable resume:** https://canman2828.github.io/AR-Resume/print/resume-print.html

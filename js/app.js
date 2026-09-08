@@ -338,8 +338,10 @@
     scene.addEventListener("arReady", () => {
       hint.textContent = "Point your camera at the resume";
     });
-    scene.addEventListener("arError", () => {
-      hint.textContent = "Camera unavailable. Allow access and reload.";
+    scene.addEventListener("arError", (event) => {
+      hint.textContent = event.detail.error === "TRACKING_FAIL"
+        ? "AR could not start. Reload to try again."
+        : "Camera unavailable. Allow access and reload.";
     });
 
     const H = AR_CONFIG.targetHeight;

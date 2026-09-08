@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://i.ytimg.com" crossorigin />
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="./js/startup.js?v=camera-v2"></script>
   <script src="./config.js"></script>
   <style>
     html, body {
@@ -67,6 +68,7 @@
 
   <a-scene
     mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: yes; uiLoading: yes; filterMinCF: 0.0001; filterBeta: 0.001"
+    resume-camera
     color-space="sRGB"
     renderer="colorManagement: true"
     vr-mode-ui="enabled: false"
@@ -79,6 +81,6 @@
     <a-entity id="anchor" mindar-image-target="targetIndex: 0"></a-entity>
   </a-scene>
 
-  <script src="./js/app.js"></script>
+  <script src="./js/app.js?v=camera-v2"></script>
 </body>
 </html>
