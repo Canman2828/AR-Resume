@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <title>AR Resume</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <!-- Start the tracking download before the camera permission prompt. -->
+  <link rel="preload" href="./assets/targets.mind" as="fetch" crossorigin="anonymous" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://i.ytimg.com" crossorigin />
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <script src="./config.js"></script>
@@ -57,7 +61,7 @@
 <body>
   <div id="topbar">
     <span class="name" id="topbar-name">AR Resume</span>
-    <span class="hint">Point your camera at the resume</span>
+    <span class="hint" id="startup-hint" role="status">Starting AR…</span>
   </div>
   <div id="toast">Tap a panel to open it</div>
 

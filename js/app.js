@@ -80,11 +80,18 @@
 
   // ---------- scene plumbing ---------------------------------
   const anchor = document.getElementById("anchor");
+  const textureContainer = document.createElement("div");
+  textureContainer.hidden = true;
+  document.body.appendChild(textureContainer);
   let zBump = 0.01;
 
   function addPlane(canvas, wUnits, hUnits, x, y, url) {
     const el = document.createElement("a-image");
-    el.setAttribute("src", canvas.toDataURL("image/png"));
+    // A-Frame accepts canvases directly: avoid PNG encoding and decoding
+    // every panel before it can be uploaded to the GPU.
+    canvas.id = `ar-panel-texture-${textureContainer.childElementCount}`;
+    textureContainer.appendChild(canvas);
+    el.setAttribute("src", `#${canvas.id}`);
     el.setAttribute("width", wUnits);
     el.setAttribute("height", hUnits);
     el.setAttribute("position", `${x} ${y} ${zBump}`);
@@ -104,9 +111,17 @@
       items.reduce((s, it) => s + it.h, 0) + gap * (items.length - 1);
     let top = total / 2;
     for (const it of items) {
-      addPlane(it.canvas, it.w, it.h, x, top - it.h / 2, it.url);
+      it.el = addPlane(it.canvas, it.w, it.h, x, top - it.h / 2, it.url);
       top -= it.h + gap;
     }
+  }
+
+  function updatePanel(panel, content) {
+    const ctx = panel.canvas.getContext("2d");
+    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+    ctx.drawImage(content.canvas, 0, 0);
+    const mesh = panel.el.getObject3D("mesh");
+    if (mesh && mesh.material.map) mesh.material.map.needsUpdate = true;
   }
 
   // ---------- panel builders ---------------------------------
@@ -280,9 +295,19 @@
   function loadImage(src) {
     return new Promise((resolve) => {
       const img = new Image();
+      const finish = (result) => {
+        clearTimeout(timeout);
+        img.onload = null;
+        img.onerror = null;
+        if (!result) img.removeAttribute("src");
+        resolve(result);
+      };
+      // Optional images should never leave a request waiting indefinitely.
+      const timeout = setTimeout(() => finish(null), 8000);
       img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
+      img.decoding = "async";
+      img.onload = () => finish(img);
+      img.onerror = () => finish(null);
       img.src = src;
     });
   }
@@ -304,9 +329,18 @@
   }
 
   // ---------- build the scene --------------------------------
-  async function init() {
+  function init() {
     document.getElementById("topbar-name").textContent =
       AR_CONFIG.name + " — AR Resume";
+
+    const scene = document.querySelector("a-scene");
+    const hint = document.getElementById("startup-hint");
+    scene.addEventListener("arReady", () => {
+      hint.textContent = "Point your camera at the resume";
+    });
+    scene.addEventListener("arError", () => {
+      hint.textContent = "Camera unavailable. Allow access and reload.";
+    });
 
     const H = AR_CONFIG.targetHeight;
 
@@ -317,26 +351,18 @@
     addPlane(frame.canvas, frame.w, frame.h, 0, 0);
 
     // left column: photo, about, contacts
-    const photoImg = AR_CONFIG.photo ? await loadImage(AR_CONFIG.photo) : null;
     const leftItems = [
-      buildPhoto(safeThumb(photoImg)),
+      buildPhoto(null),
       buildAbout(),
       buildSectionHeader("Contacts", 0.54),
       ...AR_CONFIG.contacts.map(buildContactRow),
     ];
     stackColumn(-0.85, leftItems, 0.045);
 
-    // right column: highlighted projects with YouTube thumbnails
-    const thumbs = await Promise.all(
-      AR_CONFIG.projects.map((p) =>
-        loadImage(`https://i.ytimg.com/vi/${p.youtubeId}/mqdefault.jpg`)
-      )
-    );
+    // Build every panel immediately; optional images fill in independently.
     const rightItems = [
       buildSectionHeader("Highlighted Projects", 0.62),
-      ...AR_CONFIG.projects.map((p, i) =>
-        buildProjectCard(p, safeThumb(thumbs[i]))
-      ),
+      ...AR_CONFIG.projects.map((p) => buildProjectCard(p, null)),
     ];
     stackColumn(0.89, rightItems, 0.05);
 
@@ -354,6 +380,24 @@
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 3500);
     });
+
+    // A-Frame waits for document.readyState === "complete". Starting Image
+    // requests earlier can delay that event and prevent the camera starting.
+    scene.addEventListener("renderstart", () => {
+      if (AR_CONFIG.photo) {
+        loadImage(AR_CONFIG.photo).then((img) => {
+          const photo = safeThumb(img);
+          if (photo) updatePanel(leftItems[0], buildPhoto(photo));
+        });
+      }
+      AR_CONFIG.projects.forEach((project, i) => {
+        loadImage(`https://i.ytimg.com/vi/${project.youtubeId}/mqdefault.jpg`)
+          .then((img) => {
+            const thumb = safeThumb(img);
+            if (thumb) updatePanel(rightItems[i + 1], buildProjectCard(project, thumb));
+          });
+      });
+    }, { once: true });
   }
 
   if (document.readyState === "loading") {

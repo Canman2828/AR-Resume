@@ -21,6 +21,12 @@ paper:
 Built with [MindAR](https://hiukim.github.io/mind-ar-js-doc/) image tracking
 + A-Frame. Pure static site — no build step, no server code.
 
+The tracking file preloads while the page opens. Panels use canvas textures
+and are built before optional images load. Photos and thumbnails download
+independently after scene startup; failed requests or requests taking more
+than eight seconds leave a usable placeholder. MindAR still needs to warm
+up tracking after camera access and recognize the resume before showing panels.
+
 **Live site:** https://canman2828.github.io/AR-Resume/
 **Printable resume:** https://canman2828.github.io/AR-Resume/print/resume-print.html
 
