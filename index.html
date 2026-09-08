@@ -67,9 +67,13 @@
   <div id="toast">Tap a panel to open it</div>
 
   <!-- Acquire sooner and keep the last pose through brief tracking misses.
-       Use MindAR's standard smoothing so panels follow a moving page. -->
+       Smoothing = MindAR's One Euro filter: cutoff = filterMinCF + filterBeta*|velocity|.
+       A huge filterBeta makes tiny at-rest camera noise spike the cutoff and disable
+       smoothing, so the panels shake when the page is still. Keep filterBeta small so a
+       stationary page stays locked, and let filterMinCF give responsiveness when it moves.
+       Tune live on-device with ?cf=<filterMinCF>&beta=<filterBeta> (see the script below). -->
   <a-scene
-    mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: yes; uiLoading: yes; warmupTolerance: 2; missTolerance: 15; filterMinCF: 0.001; filterBeta: 1000"
+    mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: yes; uiLoading: yes; warmupTolerance: 2; missTolerance: 15; filterMinCF: 0.001; filterBeta: 0.01"
     resume-camera
     color-space="sRGB"
     renderer="colorManagement: true"
@@ -83,6 +87,21 @@
     <a-entity id="anchor" mindar-image-target="targetIndex: 0"></a-entity>
   </a-scene>
 
+  <!-- Live smoothing tuner: ?cf=0.001&beta=0.01 overrides the values above so you
+       can dial in stability vs. responsiveness on a real phone without editing files.
+       Runs during parse, before MindAR's component initializes, so the new values take. -->
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var cf = params.get("cf"), beta = params.get("beta");
+      if (cf === null && beta === null) return;
+      var scene = document.querySelector("a-scene");
+      var cfg = scene.getAttribute("mindar-image");
+      if (cf !== null && !isNaN(parseFloat(cf))) cfg = cfg.replace(/filterMinCF:\s*[^;]+/, "filterMinCF: " + parseFloat(cf));
+      if (beta !== null && !isNaN(parseFloat(beta))) cfg = cfg.replace(/filterBeta:\s*[^;]+/, "filterBeta: " + parseFloat(beta));
+      scene.setAttribute("mindar-image", cfg);
+    })();
+  </script>
   <script src="./js/app.js?v=handheld-v1"></script>
 </body>
 </html>
