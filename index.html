@@ -66,8 +66,10 @@
   </div>
   <div id="toast">Tap a panel to open it</div>
 
+  <!-- Acquire sooner and keep the last pose through brief tracking misses.
+       Use MindAR's standard smoothing so panels follow a moving page. -->
   <a-scene
-    mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: yes; uiLoading: yes; filterMinCF: 0.0001; filterBeta: 0.001"
+    mindar-image="imageTargetSrc: ./assets/targets.mind; uiScanning: yes; uiLoading: yes; warmupTolerance: 2; missTolerance: 15; filterMinCF: 0.001; filterBeta: 1000"
     resume-camera
     color-space="sRGB"
     renderer="colorManagement: true"
@@ -81,6 +83,6 @@
     <a-entity id="anchor" mindar-image-target="targetIndex: 0"></a-entity>
   </a-scene>
 
-  <script src="./js/app.js?v=camera-v2"></script>
+  <script src="./js/app.js?v=handheld-v1"></script>
 </body>
 </html>

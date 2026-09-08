@@ -8,14 +8,6 @@
 (function () {
   const PX = 1024; // canvas pixels per AR world unit (text sharpness)
 
-  // Side columns (photo/about/contacts, projects) are shrunk and pulled in
-  // against the page's own edge so the whole scene — page plus panels —
-  // fits inside the camera's field of view at normal scanning distance.
-  // Without this, the panels spill far outside the printed page's width
-  // and get clipped unless the phone is held far back and dead-center.
-  const SIDE_PANEL_SCALE = 0.58;
-  const SIDE_PANEL_GUTTER = 0.05; // gap between the page frame and a column
-
   // ---- palette: white + gray accent -------------------------
   const INK = "#1f2937"; // near-black text
   const GRAY = "#6b7280"; // gray accent
@@ -114,21 +106,14 @@
   }
 
   // Stack items vertically, centered on the target's vertical middle.
-  // `scale` shrinks each item's displayed size (the canvas keeps its
-  // original resolution, so text stays sharp) — this is what keeps the
-  // whole scene inside the camera's view at normal scanning distance
-  // instead of spilling off the sides of the screen.
-  function stackColumn(x, items, gap, scale) {
-    scale = scale || 1;
-    const heights = items.map((it) => it.h * scale);
+  function stackColumn(x, items, gap) {
     const total =
-      heights.reduce((s, h) => s + h, 0) + gap * (items.length - 1);
+      items.reduce((s, it) => s + it.h, 0) + gap * (items.length - 1);
     let top = total / 2;
-    items.forEach((it, i) => {
-      const w = it.w * scale, h = heights[i];
-      it.el = addPlane(it.canvas, w, h, x, top - h / 2, it.url);
-      top -= h + gap;
-    });
+    for (const it of items) {
+      it.el = addPlane(it.canvas, it.w, it.h, x, top - it.h / 2, it.url);
+      top -= it.h + gap;
+    }
   }
 
   function updatePanel(panel, content) {
@@ -374,33 +359,22 @@
       buildSectionHeader("Contacts", 0.54),
       ...AR_CONFIG.contacts.map(buildContactRow),
     ];
-    const leftMaxW = Math.max(...leftItems.map((it) => it.w)) * SIDE_PANEL_SCALE;
-    const leftX = -(frame.w / 2 + SIDE_PANEL_GUTTER + leftMaxW / 2);
-    stackColumn(leftX, leftItems, 0.045 * SIDE_PANEL_SCALE, SIDE_PANEL_SCALE);
+    stackColumn(-0.85, leftItems, 0.045);
 
     // Build every panel immediately; optional images fill in independently.
     const rightItems = [
       buildSectionHeader("Highlighted Projects", 0.62),
       ...AR_CONFIG.projects.map((p) => buildProjectCard(p, null)),
     ];
-    const rightMaxW = Math.max(...rightItems.map((it) => it.w)) * SIDE_PANEL_SCALE;
-    const rightX = frame.w / 2 + SIDE_PANEL_GUTTER + rightMaxW / 2;
-    stackColumn(rightX, rightItems, 0.05 * SIDE_PANEL_SCALE, SIDE_PANEL_SCALE);
+    stackColumn(0.89, rightItems, 0.05);
 
-    // pop-in animation + tap hint when the target is found
-    anchor.setAttribute("animation__in", {
-      property: "scale",
-      from: "0.001 0.001 0.001",
-      to: "1 1 1",
-      dur: 600,
-      easing: "easeOutBack",
-      startEvents: "targetFound",
-    });
+    // Show panels at full size as soon as tracking succeeds. Reacquiring
+    // the paper should not restart a pop-in animation or repeat the hint.
     const toast = document.getElementById("toast");
     anchor.addEventListener("targetFound", () => {
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 3500);
-    });
+    }, { once: true });
 
     // A-Frame waits for document.readyState === "complete". Starting Image
     // requests earlier can delay that event and prevent the camera starting.

@@ -34,6 +34,16 @@ starts when the browser returns the camera stream, so it excludes time
 spent deciding whether to allow access. The camera adapter targets the
 pinned MindAR 1.2.5 startup methods and must be rechecked before upgrades.
 
+Handheld tracking uses `warmupTolerance: 2` for earlier acquisition and
+`missTolerance: 15` to retain the last pose through brief tracking misses.
+These are processed-frame counts, so the grace period varies by device.
+MindAR's default smoothing (`filterMinCF: 0.001`, `filterBeta: 1000`) keeps
+panels responsive to movement. Panels appear at full size on reacquisition,
+and the tap hint appears only once. Long tracking losses still hide the
+panels; strong motion blur, covered features, or a bent page can prevent
+recognition. The larger side panels may still extend beyond a portrait
+viewport; the shrink-to-fit layout was reverted for readability.
+
 **Live site:** https://canman2828.github.io/AR-Resume/
 **Printable resume:** https://canman2828.github.io/AR-Resume/print/resume-print.html
 
