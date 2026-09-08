@@ -61,12 +61,18 @@ AFRAME.registerComponent("resume-camera", {
         return;
       }
       const cameraRequested = performance.now();
+      // VGA by default keeps tracking fast on low-end phones. A sharper feed
+      // gives a steadier pose (less jitter) at some CPU cost — try it on-device
+      // with ?camW=1280&camH=720 before committing to it as a default.
+      const camParams = new URLSearchParams(location.search);
+      const camW = parseInt(camParams.get("camW"), 10) || 640;
+      const camH = parseInt(camParams.get("camH"), 10) || 480;
       navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
           facingMode: "environment",
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: camW },
+          height: { ideal: camH },
           frameRate: { ideal: 30 },
         },
       }).then((stream) => {
