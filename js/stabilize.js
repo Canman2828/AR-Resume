@@ -37,15 +37,17 @@ AFRAME.registerComponent("pose-stabilizer", {
   schema: {
     // Cutoff (Hz) when the page is still. Lower = steadier, slightly laggier.
     // Balanced default: steady at rest without noticeable lag when moved.
+    // (Position velocity is normalized to card-widths/sec, so these are sane Hz.)
     minCutoff: { default: 0.3 },
-    // How fast the cutoff opens up with motion. Higher = snappier when moving.
-    beta: { default: 8 },
+    // How fast the cutoff opens up with motion (per card-width/sec). Higher =
+    // snappier when moving, but lets a little more jitter through.
+    beta: { default: 3 },
     // Cutoff (Hz) for the internal velocity estimate. 1 Hz is the standard.
     dCutoff: { default: 1.0 },
-    // Output dead-band (world units, 1 ≈ target width). This is a HARD, device-
-    // independent cap on residual shake: below it the smoothed pose is held, so
-    // a still page cannot wobble more than ~this much regardless of camera noise.
-    deadband: { default: 0.006 },
+    // Output dead-band in CARD-WIDTHS. A hard, device-independent cap on residual
+    // shake: a still page cannot wobble more than ~this fraction of the card,
+    // regardless of camera noise. 0.01 ≈ 1% of the card width.
+    deadband: { default: 0.01 },
     // Weight turning a rotation (radians) into an equivalent edge shift, used
     // only for the dead-band comparison.
     lever: { default: 1.0 },
@@ -103,21 +105,28 @@ AFRAME.registerComponent("pose-stabilizer", {
     let started = false;
     let lastT = 0;
     let prevQuatArr = [0, 0, 0, 1];
+    let scaleUnit = 1; // MindAR marker scale, learned per frame from the pose
 
-    // Rolling RMS of how much the DISPLAYED pose still moves — i.e. the shake
-    // you actually see. Hold the page still and read this number to tune.
+    // Live diagnostics: how much the displayed pose still moves (position shake
+    // + rotation shake) and how often MindAR loses the target (reacquisitions).
+    // "v3" in the readout confirms this build is actually the one running.
     const prevOut = new THREE.Vector3();
+    const prevOutQuat = new THREE.Quaternion();
     let havePrevOut = false;
     let shakeRms = 0;
-    const showDebug = (dt) => {
+    let rotShakeRms = 0;
+    let lostCount = 0;
+    const showDebug = () => {
       if (!debug) return;
-      const step = havePrevOut ? outPos.distanceTo(prevOut) : 0;
-      prevOut.copy(outPos); havePrevOut = true;
+      // Report position shake in card-widths (÷ scaleUnit) so it's readable.
+      const step = havePrevOut ? outPos.distanceTo(prevOut) / scaleUnit : 0;
+      const rotStep = havePrevOut ? prevOutQuat.angleTo(outQuat) * 180 / Math.PI : 0;
+      prevOut.copy(outPos); prevOutQuat.copy(outQuat); havePrevOut = true;
       shakeRms += 0.1 * (step - shakeRms);
+      rotShakeRms += 0.1 * (rotStep - rotShakeRms);
       const hint = document.getElementById("startup-hint");
-      const speed = Math.hypot(posCh[0].dx, posCh[1].dx, posCh[2].dx);
       if (hint) hint.textContent =
-        `shake ${shakeRms.toFixed(4)} | vel ${speed.toFixed(3)} | cutoff ${(data.minCutoff + data.beta * speed).toFixed(1)}Hz`;
+        `v5 shake ${shakeRms.toFixed(4)} | rot ${rotShakeRms.toFixed(2)}° | reacquired ${lostCount}x`;
     };
 
     const original = target.updateWorldMatrix.bind(target);
@@ -125,6 +134,7 @@ AFRAME.registerComponent("pose-stabilizer", {
     target.updateWorldMatrix = function (worldMatrix) {
       if (worldMatrix === null) {
         // Reset so reacquisition snaps straight to the fresh pose (no lag-in).
+        if (started) lostCount++;
         started = false;
         posCh.forEach((c) => (c.started = false));
         quatCh.forEach((c) => (c.started = false));
@@ -133,6 +143,12 @@ AFRAME.registerComponent("pose-stabilizer", {
 
       mat.fromArray(worldMatrix).multiply(target.postMatrix);
       mat.decompose(inPos, inQuat, inScale);
+
+      // CRITICAL: MindAR's pose is in a large internal coordinate scale (the
+      // marker "width" — often ~1000+), NOT the card≈1 units the panels use.
+      // Filter position in NORMALIZED units (÷ scale) so minCutoff/beta/deadband
+      // are all in card-widths and behave the same at any distance or scale.
+      scaleUnit = (inScale.x + inScale.y + inScale.z) / 3 || 1;
 
       const now = performance.now();
       let dt = started ? (now - lastT) / 1000 : 1 / 30;
@@ -147,9 +163,9 @@ AFRAME.registerComponent("pose-stabilizer", {
       if (dot < 0) for (let i = 0; i < 4; i++) q[i] = -q[i];
 
       filtPos.set(
-        filterChannel(posCh[0], inPos.x, dt),
-        filterChannel(posCh[1], inPos.y, dt),
-        filterChannel(posCh[2], inPos.z, dt)
+        filterChannel(posCh[0], inPos.x / scaleUnit, dt) * scaleUnit,
+        filterChannel(posCh[1], inPos.y / scaleUnit, dt) * scaleUnit,
+        filterChannel(posCh[2], inPos.z / scaleUnit, dt) * scaleUnit
       );
       const fq = [
         filterChannel(quatCh[0], q[0], dt),
@@ -164,9 +180,9 @@ AFRAME.registerComponent("pose-stabilizer", {
         outPos.copy(filtPos); outQuat.copy(filtQuat); outScale.copy(inScale);
         started = true;
       } else {
-        // Output dead-band: only move the panels if the smoothed pose has
-        // shifted enough to matter, so residual sub-pixel wobble is frozen out.
-        const dev = filtPos.distanceTo(outPos) + outQuat.angleTo(filtQuat) * data.lever;
+        // Output dead-band (in card-widths): only move the panels if the
+        // smoothed pose shifted enough to matter, so residual wobble freezes out.
+        const dev = filtPos.distanceTo(outPos) / scaleUnit + outQuat.angleTo(filtQuat) * data.lever;
         if (dev > data.deadband) {
           outPos.copy(filtPos);
           outQuat.copy(filtQuat);
@@ -175,7 +191,7 @@ AFRAME.registerComponent("pose-stabilizer", {
       }
 
       el.object3D.matrix.compose(outPos, outQuat, outScale);
-      showDebug(dt);
+      showDebug();
 
       const wasVisible = el.object3D.visible;
       el.emit("targetUpdate");
