@@ -18,6 +18,8 @@ paper:
  └────────┘
 ```
 
+<img width="1206" height="2137" alt="image" src="https://github.com/user-attachments/assets/0423346f-0494-4bc3-aa4c-47441b8168be" />
+
 Built with [MindAR](https://hiukim.github.io/mind-ar-js-doc/) image tracking
 + A-Frame. Pure static site — no build step, no server code.
 
